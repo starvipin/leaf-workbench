@@ -1,0 +1,72 @@
+.latex-editor-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #fdfdfb;
+}
+
+.latex-format-toolbar {
+  display: flex;
+  flex: 0 0 39px;
+  align-items: center;
+  gap: 3px;
+  padding: 0 14px;
+  border-bottom: 1px solid #edf0eb;
+  background: #fff;
+}
+
+.latex-format-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 27px;
+  padding: 0;
+  color: #778178;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.latex-format-toolbar button:hover {
+  color: #24724e;
+  background: #edf5ef;
+}
+
+.latex-format-toolbar button:focus-visible {
+  outline: 2px solid #6ea286;
+  outline-offset: 1px;
+}
+
+.latex-toolbar-divider {
+  height: 15px;
+  width: 1px;
+  margin: 0 7px;
+  background: #e8ece7;
+}
+
+.latex-toolbar-spacer { flex: 1; }
+
+.latex-editor-mount {
+  flex: 1 1 0;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.latex-editor-mount .cm-editor { height: 100%; }
+.latex-editor-mount .cm-scroller { scrollbar-width: thin; scrollbar-color: #cfd7cd transparent; }
+.latex-editor-mount .cm-scroller::-webkit-scrollbar { width: 7px; height: 7px; }
+.latex-editor-mount .cm-scroller::-webkit-scrollbar-thumb { background: #cfd7cd; border-radius: 5px; }
+.latex-editor-mount .cm-scroller::-webkit-scrollbar-track { background: transparent; }
+
+@media (max-width: 700px) {
+  .latex-format-toolbar { padding-inline: 8px; gap: 1px; }
+  .latex-toolbar-divider { margin-inline: 4px; }
+}
