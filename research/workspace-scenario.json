@@ -1,0 +1,180 @@
+{
+  "browser": {
+    "mode": "launch",
+    "executable_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+  },
+  "start_url": {
+    "url": "http://127.0.0.1:5173"
+  },
+  "environment": {
+    "viewport": {
+      "width": 1440,
+      "height": 960
+    },
+    "color_scheme": "light",
+    "reduced_motion": "reduce"
+  },
+  "actions": [
+    {
+      "step_id": "starter-pdf-rendered",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": ".pdf-viewport[aria-busy='false'] canvas"
+      },
+      "state": "visible",
+      "timeout_ms": 45000
+    },
+    {
+      "step_id": "open-dashboard",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Projects"
+      },
+      "timeout_ms": 5000
+    },
+    {
+      "step_id": "new-project",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "New project"
+      },
+      "timeout_ms": 5000
+    },
+    {
+      "step_id": "name-project",
+      "action": "fill",
+      "locator": {
+        "kind": "css",
+        "selector": ".field-label input"
+      },
+      "value": {
+        "source": "literal",
+        "value": "REA verified LaTeX project"
+      }
+    },
+    {
+      "step_id": "create-project",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Create project"
+      }
+    },
+    {
+      "step_id": "new-project-pdf",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": ".pdf-viewport[aria-busy='false'] canvas"
+      },
+      "state": "visible",
+      "timeout_ms": 45000
+    },
+    {
+      "step_id": "write-invalid-tex",
+      "action": "fill",
+      "locator": {
+        "kind": "css",
+        "selector": ".cm-content"
+      },
+      "value": {
+        "source": "literal",
+        "value": "\\documentclass{article}\n\\begin{document}\n\\intentionalUnknownCommand\n\\end{document}"
+      }
+    },
+    {
+      "step_id": "compile-invalid-tex",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Recompile"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "step_id": "compiler-error-visible",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": ".logs-panel .error-message:nth-child(2)"
+      },
+      "state": "visible",
+      "timeout_ms": 45000
+    },
+    {
+      "step_id": "fix-tex",
+      "action": "fill",
+      "locator": {
+        "kind": "css",
+        "selector": ".cm-content"
+      },
+      "value": {
+        "source": "literal",
+        "value": "\\documentclass[11pt]{article}\n\\usepackage[margin=1in]{geometry}\n\\usepackage{amsmath}\n\\title{From REA to a Real PDF}\n\\author{Leaf Workbench}\n\\date{October 2026}\n\\begin{document}\n\\maketitle\n\\section{Live preview, verified}\nThis document was edited in the browser and compiled with the local Tectonic engine.\n\\[e^{i\\pi}+1=0\\]\n\\section{A space to think}\nSource code on the left. A real typeset PDF on the right.\n\\end{document}"
+      }
+    },
+    {
+      "step_id": "compile-fixed-tex",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Recompile"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "step_id": "recovered-pdf-visible",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": ".pdf-viewport[aria-busy='false'] canvas"
+      },
+      "state": "visible",
+      "timeout_ms": 45000
+    },
+    {
+      "step_id": "close-compiler-logs",
+      "action": "click",
+      "locator": {
+        "kind": "role",
+        "role": "button",
+        "name": "Close logs"
+      }
+    },
+    {
+      "step_id": "source-autosaved",
+      "action": "wait_for_timeout",
+      "duration_ms": 500
+    },
+    {
+      "step_id": "reload-saved-project",
+      "action": "goto",
+      "destination": {
+        "url": "http://127.0.0.1:5173"
+      },
+      "wait_until": "load"
+    },
+    {
+      "step_id": "persisted-project-recompiled",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": ".pdf-viewport[aria-busy='false'] canvas"
+      },
+      "state": "visible",
+      "timeout_ms": 45000
+    }
+  ],
+  "capture": {
+    "at_end": ["screenshot", "dom", "accessibility", "url"],
+    "events": ["page-errors"]
+  }
+}

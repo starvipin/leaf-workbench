@@ -1,1 +1,24 @@
-{"browser":{"mode":"launch","executable_path":"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"},"start_url":{"url":"https://www.overleaf.com/project"},"environment":{"viewport":{"width":1440,"height":1000},"color_scheme":"light"},"actions":[{"step_id":"load-public-project-route","action":"wait_for","locator":{"kind":"css","selector":"body"},"state":"visible","timeout_ms":30000}],"capture":{"at_end":["url","dom","accessibility","screenshot"],"events":["network"]}}
+{
+  "browser": {
+    "mode": "launch",
+    "executable_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+  },
+  "start_url": { "url": "https://www.overleaf.com/project" },
+  "environment": {
+    "viewport": { "width": 1440, "height": 1000 },
+    "color_scheme": "light"
+  },
+  "actions": [
+    {
+      "step_id": "load-public-project-route",
+      "action": "wait_for",
+      "locator": { "kind": "css", "selector": "body" },
+      "state": "visible",
+      "timeout_ms": 30000
+    }
+  ],
+  "capture": {
+    "at_end": ["url", "dom", "accessibility", "screenshot"],
+    "events": ["network"]
+  }
+}
