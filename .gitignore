@@ -1,0 +1,9 @@
+node_modules/
+dist/
+tools/
+.data/
+.cache/
+test-results/
+*.log
+research/*-raw.json
+research/*.png
