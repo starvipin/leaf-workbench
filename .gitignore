@@ -1,10 +1,39 @@
+# Dependencies and build output
 node_modules/
 dist/
+*.tsbuildinfo
+
+# Downloaded compiler, local projects/PDFs, and TeX caches
 tools/
 .data/
 .cache/
+
+# Local environment variables (keep shareable examples)
+.env
+.env.*
+!.env.example
+!.env.sample
+*.local
+
+# Test artifacts and logs
 test-results/
+playwright-report/
+blob-report/
+coverage/
+.nyc_output/
 *.log
+
+# Raw browser captures and generated screenshots
 research/*-raw.json
 research/*.png
-*.tsbuildinfo
+
+# Editor, OS, and temporary files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*.tmp
+*.bak
