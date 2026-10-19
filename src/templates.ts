@@ -1,4 +1,4 @@
-import type { Project, ProjectFile } from './types';
+import type { Project, ProjectFile } from "./types";
 
 export const articleSource = String.raw`\documentclass[11pt,a4paper]{article}
 
@@ -88,16 +88,39 @@ Thank you for your time and thoughtful consideration.
 \end{document}
 `;
 
-export function createProject(name = 'Untitled Project', template = 'blank'): Project {
-  const source = template === 'article' ? articleSource : template === 'letter' ? letterSource : blankSource;
-  return {id:crypto.randomUUID(),name,files:[{name:'main.tex',content:source}],updatedAt:Date.now(),starred:false};
+export function createProject(
+  name = "Untitled Project",
+  template = "blank",
+): Project {
+  const source =
+    template === "article"
+      ? articleSource
+      : template === "letter"
+        ? letterSource
+        : blankSource;
+  return {
+    id: crypto.randomUUID(),
+    name,
+    files: [{ name: "main.tex", content: source }],
+    updatedAt: Date.now(),
+    starred: false,
+  };
 }
 
 export function initialProjects(): Project[] {
-  return [{...createProject('The Art of Clear Thinking','article'),starred:true}];
+  return [
+    { ...createProject("The Art of Clear Thinking", "article"), starred: true },
+  ];
 }
 
-export function outlineFrom(files:ProjectFile[]) {
-  const source = files.find(f=>f.name==='main.tex')?.content ?? files[0]?.content ?? '';
-  return [...source.matchAll(/\\(sub)*section\*?\{([^}]+)\}/g)].map(m=>({title:m[2],nested:!!m[1],line:source.slice(0,m.index).split('\n').length}));
+export function outlineFrom(files: ProjectFile[]) {
+  const source =
+    files.find((f) => f.name === "main.tex")?.content ??
+    files[0]?.content ??
+    "";
+  return [...source.matchAll(/\\(sub)*section\*?\{([^}]+)\}/g)].map((m) => ({
+    title: m[2],
+    nested: !!m[1],
+    line: source.slice(0, m.index).split("\n").length,
+  }));
 }
