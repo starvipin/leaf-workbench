@@ -23,9 +23,9 @@ coverage/
 .nyc_output/
 *.log
 
-# Raw browser captures and generated screenshots
-research/*-raw.json
-research/*.png
+# Local research outputs; keep only replayable browser scenarios
+research/*
+!research/*-scenario.json
 
 # Editor, OS, and temporary files
 .idea/

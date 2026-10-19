@@ -85,7 +85,8 @@ and origin restrictions.
 REA also drove the actual browser through new-project creation, source editing,
 intentional compiler failure, repair, successful PDF rendering, and a reload that
 restored and recompiled the saved source. Every scenario step completed.
-See `research/workspace-verification.json` and the replayable scenario in
+Local verification reports and screenshots are retained under `research/` and
+excluded from Git. The replayable scenario is included in
 `research/workspace-scenario.json`. Run the scenario with the previously installed
 `rea capture-browser-scenario <scenario-file> --json` while the dev server is up.
 
@@ -98,7 +99,8 @@ actual compiled A4 PDF and its document text.
 REA inspected the user-supplied `https://www.overleaf.com/project` route in an
 isolated Chrome profile. It redirected to login; authenticated projects and
 private editor behavior were not accessed. The captured evidence identity and
-scope are recorded in `research/observations.json`. Interface behavior was also
+scope are recorded locally in the ignored `research/observations.json` report.
+Interface behavior was also
 informed by Overleaf's [public editor guide](https://docs.overleaf.com/getting-started/how-do-i-use-overleaf/redesigned-overleaf-editor)
 and [compilation guide](https://docs.overleaf.com/getting-started/recompiling-your-project).
 The implementation is independent and uses its own branding and example content.
