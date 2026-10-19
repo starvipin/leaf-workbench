@@ -379,6 +379,30 @@
   }
 }
 
+.pdf-provenance {
+  min-height: 29px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px;
+  background: #f5f8f1;
+  border-bottom: 1px solid #dfe7d8;
+  color: #78896a;
+  font-size: 10px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.pdf-provenance strong {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 500;
+}
+.pdf-provenance.is-stale {
+  background: #fcf5e5;
+  border-color: #ecdfbf;
+  color: #927333;
+}
+
 .pdf-toolbar-label {
   display: flex;
   align-items: center;

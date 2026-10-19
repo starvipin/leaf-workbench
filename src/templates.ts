@@ -104,6 +104,7 @@ export function createProject(
     files: [{ name: "main.tex", content: source }],
     updatedAt: Date.now(),
     starred: false,
+    sourceRevision: 1,
   };
 }
 

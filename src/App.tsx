@@ -1,4 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useSyncExternalStore,
+} from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   Leaf,
@@ -42,7 +48,12 @@ import {
 import LatexEditor from "./components/LatexEditor";
 import PdfPreview from "./components/PdfPreview";
 import { createProject, initialProjects, outlineFrom } from "./templates";
-import type { Project, CompileResult } from "./types";
+import type { Project } from "./types";
+import {
+  CompilationCoordinator,
+  reviseProject,
+  savedSourceRevision,
+} from "./compilation";
 
 const STORE = "leaf-workspace-v1";
 type Modal = "new" | "settings" | "help" | "history" | "rename" | null;
@@ -70,7 +81,10 @@ function readProjects(): Project[] {
           ),
       )
     )
-      return p;
+      return p.map((project: Project) => ({
+        ...project,
+        sourceRevision: savedSourceRevision(project.sourceRevision),
+      }));
   } catch {}
   return initialProjects();
 }
@@ -128,9 +142,12 @@ export default function App() {
     [fontSize, setFontSize] = useState(14),
     [wrapLines, setWrapLines] = useState(true);
   const [layout, setLayout] = useState<"split" | "editor" | "pdf">("split");
-  const [compiled, setCompiled] = useState<Record<string, CompileResult>>({});
-  const [compilingId, setCompilingId] = useState<string | null>(null),
-    [logs, setLogs] = useState(false);
+  const [compiler] = useState(() => new CompilationCoordinator());
+  const compilationStates = useSyncExternalStore(
+    compiler.subscribe,
+    compiler.getSnapshot,
+  );
+  const [logs, setLogs] = useState(false);
   const [cursor, setCursor] = useState({ line: 1, column: 1 }),
     [saved, setSaved] = useState(true),
     [toast, setToast] = useState("");
@@ -149,10 +166,12 @@ export default function App() {
     containerRef = useRef<HTMLDivElement>(null);
   const latest = useRef(project);
   latest.current = project;
-  const compilingRef = useRef(false),
-    attempted = useRef(new Set<string>());
-  const result = compiled[project.id];
-  const compiling = compilingId === project.id;
+  const attempted = useRef(new Set<string>());
+  const compilation = compilationStates[project.id];
+  const result = compilation?.result;
+  const buildingRevision = compilation?.pendingRevision ?? null;
+  const compiling = buildingRevision !== null;
+  const compilingCurrentSource = buildingRevision === project.sourceRevision;
 
   const notify = useCallback((message: string) => setToast(message), []);
   useEffect(() => {
@@ -187,8 +206,9 @@ export default function App() {
   }, [checkpoints, notify]);
 
   const updateProject = useCallback((fn: (p: Project) => Project) => {
+    const projectId = latest.current.id;
     setProjects((ps) =>
-      ps.map((p) => (p.id === latest.current.id ? fn(p) : p)),
+      ps.map((p) => (p.id === projectId ? reviseProject(p, fn(p)) : p)),
     );
   }, []);
   const changeSource = useCallback(
@@ -205,66 +225,23 @@ export default function App() {
     [file.name, updateProject],
   );
   const compile = useCallback(async () => {
-    if (compilingRef.current) return;
     const p = latest.current;
-    compilingRef.current = true;
-    setCompilingId(p.id);
-    try {
-      const response = await fetch("/api/compile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          files: p.files,
-          mainFile: p.files.some((f) => f.name === "main.tex")
-            ? "main.tex"
-            : p.files.find((f) => f.name.endsWith(".tex"))?.name,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok && !data.errors)
-        throw new Error(
-          data.error || data.message || `Compiler returned ${response.status}`,
-        );
-      setCompiled((old) => ({
-        ...old,
-        [p.id]: { ...data, pdfUrl: data.pdfUrl || old[p.id]?.pdfUrl },
-      }));
-      if (!data.success && latest.current.id === p.id) setLogs(true);
-    } catch (error) {
-      setCompiled((old) => ({
-        ...old,
-        [p.id]: {
-          success: false,
-          pdfUrl: old[p.id]?.pdfUrl,
-          log:
-            error instanceof Error ? error.message : "Cannot reach compiler.",
-          errors: [
-            {
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "Cannot reach compiler.",
-            },
-          ],
-          durationMs: 0,
-        },
-      }));
-      setLogs(true);
-    } finally {
-      compilingRef.current = false;
-      setCompilingId(null);
-    }
-  }, []);
-  useEffect(() => {
+    const accepted = await compiler.compile(p);
     if (
-      !dashboard &&
-      !attempted.current.has(project.id) &&
-      !compilingRef.current
+      accepted &&
+      !accepted.success &&
+      latest.current.id === p.id &&
+      compiler.getSnapshot()[p.id]?.requestId === accepted.requestId
     ) {
+      setLogs(true);
+    }
+  }, [compiler]);
+  useEffect(() => {
+    if (!dashboard && !attempted.current.has(project.id)) {
       attempted.current.add(project.id);
       void compile();
     }
-  }, [project.id, dashboard, compile, compilingId]);
+  }, [project.id, dashboard, compile]);
   useEffect(() => {
     if (!autoCompile || dashboard) return;
     const t = setTimeout(() => void compile(), 1800);
@@ -373,6 +350,7 @@ export default function App() {
             id: crypto.randomUUID(),
             updatedAt: Date.now(),
             starred: false,
+            sourceRevision: 1,
           };
           setProjects((ps) => [restored, ...ps]);
           openProject(restored);
@@ -1085,15 +1063,19 @@ export default function App() {
                   <div className="compile-toolbar">
                     <div className="compile-controls">
                       <button
-                        className={`recompile-button ${compiling ? "is-compiling" : ""}`}
+                        className={`recompile-button ${compilingCurrentSource ? "is-compiling" : ""}`}
                         onClick={() => void compile()}
                         aria-label={
-                          compiling ? "Compiling document" : "Recompile"
+                          compilingCurrentSource
+                            ? "Compiling document"
+                            : "Recompile"
                         }
-                        disabled={compilingId !== null}
+                        disabled={compilingCurrentSource}
                       >
-                        <RefreshIcon spinning={compiling} />
-                        {compiling ? "Compiling…" : "Recompile"}
+                        <RefreshIcon spinning={compilingCurrentSource} />
+                        {compilingCurrentSource
+                          ? `Compiling r${buildingRevision}…`
+                          : "Recompile"}
                         <kbd>Ctrl ↵</kbd>
                       </button>
                       <label
@@ -1118,7 +1100,7 @@ export default function App() {
                           <AlertCircle size={14} />
                         ) : null}
                         {compiling
-                          ? "Typesetting"
+                          ? `Building r${buildingRevision}`
                           : result?.success
                             ? `${(result.durationMs / 1000).toFixed(1)}s`
                             : result
@@ -1138,6 +1120,9 @@ export default function App() {
                     key={project.id}
                     pdfUrl={result?.pdfUrl || null}
                     compiling={compiling}
+                    sourceRevision={project.sourceRevision}
+                    pdfSourceRevision={result?.pdfSourceRevision ?? null}
+                    buildingRevision={buildingRevision}
                     error={
                       result && !result.success
                         ? result.errors?.[0]?.message || "Compilation failed"

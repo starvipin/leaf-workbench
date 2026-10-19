@@ -5,6 +5,12 @@ export type Project = {
   files: ProjectFile[];
   updatedAt: number;
   starred: boolean;
+  sourceRevision: number;
+};
+export type PreviewResult = CompileResult & {
+  requestId: number;
+  sourceRevision: number;
+  pdfSourceRevision?: number;
 };
 export type CompileResult = {
   success: boolean;

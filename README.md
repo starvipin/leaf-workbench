@@ -110,8 +110,8 @@ was verified on Windows; equivalent full-platform verification is not claimed.
 | --- | --- |
 | Source editor | CodeMirror LaTeX highlighting, line numbers, bracket matching, undo/redo, source search, formatting commands, and cursor position |
 | PDF compilation | Real Tectonic compilation with standard packages, equations, and multi-file `\input` projects |
-| Preview | PDF.js rendering, page navigation, zoom, fit to width, and PDF download |
-| Compile controls | Manual recompilation, keyboard shortcuts, optional auto-compile, and a bounded compilation queue |
+| Preview | PDF.js rendering, page navigation, zoom, fit to width, PDF download, and visible source revision |
+| Compile controls | Manual recompilation, keyboard shortcuts, optional auto-compile, a bounded queue, and newest-request ordering |
 | Diagnostics | Compiler errors and logs, with the previous successful PDF retained after a failed compile |
 | Projects | Dashboard, new projects, rename, duplicate, star, search, and list/grid views |
 | Templates | Blank document, research article, and letter |
@@ -133,6 +133,22 @@ was verified on Windows; equivalent full-platform verification is not claimed.
 Click the project title to rename it. Use **History** to save or restore a local
 checkpoint. A project backup can be imported from the dashboard or file import
 control.
+
+### Source revisions and stale previews
+
+The preview shows both the revision that produced the visible PDF and the
+current source revision, for example **PDF r2 / Source r3 — Uncompiled changes**.
+The revision is a local source counter, not a Git commit. Editing project source
+or restoring different source advances it; renaming the project does not.
+
+If you edit while a compile is running, you can compile the newer revision
+without waiting for the older response. Only the newest requested build for
+that project may update its PDF or diagnostics. Superseded successes and failures
+are ignored. A failed current build retains the last successful PDF with its
+original revision label. PDF download and the displayed revision follow the
+document that has actually finished rendering.
+
+![The latest source revision remains selected after an older response arrives](docs/images/compile-revisions.png)
 
 ### Keyboard shortcuts
 
@@ -278,8 +294,9 @@ Recorded verification on **19 October 2026**:
 
 | Check | Result |
 | --- | --- |
-| Real backend integration suite | 7 passed, 0 failed |
+| Automated tests | 14 passed, 0 failed: 7 real backend tests and 7 compilation-order/revision tests |
 | REA browser workflow | 17 completed steps, 0 recorded page errors |
+| REA overlapping-response workflow | 10 completed steps, 0 recorded page errors; older response delivered last |
 | TypeScript and Vite production build | Passed |
 | Editor browser checks | Editing, formatting, undo, search, outline navigation, and gutter alignment passed |
 | PDF viewer check | Parsed and rendered an actual compiler-produced A4 PDF |
@@ -289,6 +306,42 @@ starter article, invalid LaTeX diagnostics, CSV source data, health/version
 reporting, concurrent jobs, queue overflow, filename handling, and origin checks.
 These are development verification results, not a claim of configured GitHub CI
 or a guarantee for every TeX document.
+
+The compilation-order tests deliberately settle two overlapping requests in
+reverse order. They also check late failures, a newer build's busy state,
+retained PDF provenance after failure, per-project isolation, source snapshot
+capture, and revision behavior when restoring older content.
+
+### Reproduce the older-response-last browser check
+
+First build the frontend and start the app:
+
+```powershell
+npm.cmd run build
+npm.cmd run dev
+```
+
+In a second terminal, run the test-only local proxy:
+
+```powershell
+node scripts/verify-compile-race.mjs
+```
+
+In a third terminal, run the committed REA scenario:
+
+```powershell
+rea capture-browser-scenario research/compile-race-scenario.json --json
+```
+
+The proxy serves the built frontend on `127.0.0.1:5184` and uses the real compiler
+on port 3001. For the scenario's marked documents, it holds the older HTTP response,
+delivers the newer one, then releases the older response. Verification confirmed
+delivery order `baseline → newer → older`, with the browser still showing
+**PDF r3 / Source r3** and the newer PDF's download URL. Source edits also showed
+the stale-preview warning before recompilation. This is controlled response
+reordering; the production backend still executes its compiler jobs serially.
+Restart the test proxy before replaying the scenario and stop it with Ctrl+C
+afterward. Chrome's executable path is configured in the scenario JSON.
 
 ### Replay the REA browser workflow
 

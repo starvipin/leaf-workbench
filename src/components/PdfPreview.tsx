@@ -24,6 +24,9 @@ type PdfPreviewProps = {
   onRecompile: () => void;
   onOpenLogs: () => void;
   projectName: string;
+  sourceRevision: number;
+  pdfSourceRevision: number | null;
+  buildingRevision: number | null;
 };
 
 export default function PdfPreview({
@@ -33,8 +36,20 @@ export default function PdfPreview({
   onRecompile,
   onOpenLogs,
   projectName,
+  sourceRevision,
+  pdfSourceRevision,
+  buildingRevision,
 }: PdfPreviewProps) {
-  const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
+  const [loadedPdf, setLoadedPdf] = useState<{
+    document: PDFDocumentProxy;
+    url: string;
+    sourceRevision: number;
+  } | null>(null);
+  const document = loadedPdf?.document ?? null;
+  const [renderedPdf, setRenderedPdf] = useState<{
+    url: string;
+    sourceRevision: number;
+  } | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [zoom, setZoom] = useState<number | "fit">("fit");
   const [resolvedScale, setResolvedScale] = useState(1);
@@ -46,7 +61,6 @@ export default function PdfPreview({
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderTaskRef = useRef<RenderTask | null>(null);
-  const lastPdfUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     const element = viewportRef.current;
@@ -59,7 +73,7 @@ export default function PdfPreview({
   }, []);
 
   useEffect(() => {
-    if (!pdfUrl) return;
+    if (!pdfUrl || pdfSourceRevision === null) return;
     let alive = true;
     let accepted = false;
     setLoading(true);
@@ -72,9 +86,12 @@ export default function PdfPreview({
           return;
         }
         accepted = true;
-        lastPdfUrlRef.current = pdfUrl;
         setPageNumber(1);
-        setDocument(nextDocument);
+        setLoadedPdf({
+          document: nextDocument,
+          url: pdfUrl,
+          sourceRevision: pdfSourceRevision,
+        });
         setLoading(false);
       })
       .catch((reason: unknown) => {
@@ -90,7 +107,7 @@ export default function PdfPreview({
       alive = false;
       if (!accepted) void task.destroy();
     };
-  }, [pdfUrl]);
+  }, [pdfUrl, pdfSourceRevision]);
 
   useEffect(
     () => () => {
@@ -133,6 +150,11 @@ export default function PdfPreview({
         renderTaskRef.current = task;
         await task.promise;
         if (alive) {
+          if (loadedPdf)
+            setRenderedPdf({
+              url: loadedPdf.url,
+              sourceRevision: loadedPdf.sourceRevision,
+            });
           setRendering(false);
           setPreviewError(null);
         }
@@ -155,7 +177,7 @@ export default function PdfPreview({
       alive = false;
       task?.cancel();
     };
-  }, [document, pageNumber, zoom, availableWidth]);
+  }, [document, loadedPdf, pageNumber, zoom, availableWidth]);
 
   const changeZoom = (direction: number) =>
     setZoom(
@@ -172,7 +194,9 @@ export default function PdfPreview({
     viewportRef.current?.scrollTo({ top: 0, left: 0 });
   };
   const busy = compiling || loading;
-  const downloadUrl = lastPdfUrlRef.current;
+  const downloadUrl = renderedPdf?.url ?? null;
+  const stale =
+    renderedPdf !== null && renderedPdf.sourceRevision !== sourceRevision;
 
   return (
     <section className="pdf-preview" aria-label="PDF preview">
@@ -263,6 +287,31 @@ export default function PdfPreview({
         )}
       </div>
 
+      <div
+        className={`pdf-provenance ${stale ? "is-stale" : ""}`}
+        role="status"
+        aria-label="Preview source revision"
+        data-source-revision={sourceRevision}
+        data-preview-revision={renderedPdf?.sourceRevision ?? ""}
+        data-stale={stale}
+      >
+        <span title="Source revision used to produce the visible PDF">
+          PDF {renderedPdf ? `r${renderedPdf.sourceRevision}` : "not compiled"}
+        </span>
+        <span>Source r{sourceRevision}</span>
+        <strong>
+          {compiling
+            ? `Building r${buildingRevision}`
+            : loading || rendering
+              ? "Updating preview"
+              : stale
+                ? "Uncompiled changes"
+                : renderedPdf
+                  ? "Up to date"
+                  : "Not compiled"}
+        </strong>
+      </div>
+
       {(error || previewError) && (
         <div className="pdf-error-banner" role="alert">
           <TriangleAlert size={15} />
@@ -340,16 +389,18 @@ export default function PdfPreview({
       </div>
       <div className="pdf-statusbar">
         <span
-          className={`pdf-status-dot ${error || previewError ? "has-error" : ""} ${busy ? "is-busy" : ""}`}
+          className={`pdf-status-dot ${error || previewError || stale ? "has-error" : ""} ${busy ? "is-busy" : ""}`}
         />
         <span>
           {busy
             ? "Updating preview"
             : error || previewError
               ? "Compilation needs attention"
-              : document
-                ? "PDF preview is up to date"
-                : "Ready when you are"}
+              : stale
+                ? "Uncompiled changes — recompile to update the PDF"
+                : renderedPdf
+                  ? "PDF preview is up to date"
+                  : "Ready when you are"}
         </span>
         <span className="pdf-status-type">PDF PREVIEW</span>
       </div>

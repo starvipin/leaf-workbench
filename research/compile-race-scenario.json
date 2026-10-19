@@ -1,0 +1,93 @@
+{
+  "browser": {
+    "mode": "launch",
+    "executable_path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+  },
+  "start_url": { "url": "http://127.0.0.1:5184" },
+  "environment": {
+    "viewport": { "width": 1440, "height": 960 },
+    "color_scheme": "light",
+    "reduced_motion": "reduce"
+  },
+  "actions": [
+    {
+      "step_id": "baseline-pdf-revision",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": ".pdf-provenance[data-preview-revision='1'][data-stale='false']"
+      },
+      "state": "visible",
+      "timeout_ms": 30000
+    },
+    {
+      "step_id": "edit-older-source",
+      "action": "fill",
+      "locator": { "kind": "css", "selector": ".cm-content" },
+      "value": {
+        "source": "literal",
+        "value": "\\documentclass{article}\n% OLDER_BUILD_MARKER\n\\begin{document}\n\\section{Older source revision}\nThis older PDF must not replace the newer preview.\n\\end{document}"
+      }
+    },
+    {
+      "step_id": "show-uncompiled-changes",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": ".pdf-provenance[data-source-revision='2'][data-preview-revision='1'][data-stale='true']"
+      },
+      "state": "visible",
+      "timeout_ms": 5000
+    },
+    {
+      "step_id": "start-older-build",
+      "action": "click",
+      "locator": { "kind": "role", "role": "button", "name": "Recompile" },
+      "timeout_ms": 5000
+    },
+    {
+      "step_id": "edit-newer-source-during-build",
+      "action": "fill",
+      "locator": { "kind": "css", "selector": ".cm-content" },
+      "value": {
+        "source": "literal",
+        "value": "\\documentclass[11pt]{article}\n\\usepackage[margin=1in]{geometry}\n% NEWER_BUILD_MARKER\n\\begin{document}\n\\section{Newest source revision wins}\nThis PDF belongs to source revision 3. The older compile response arrives later and must not replace it.\n\\[e^{i\\pi}+1=0\\]\n\\end{document}"
+      }
+    },
+    {
+      "step_id": "start-newer-overlapping-build",
+      "action": "click",
+      "locator": { "kind": "role", "role": "button", "name": "Recompile" },
+      "timeout_ms": 5000
+    },
+    {
+      "step_id": "newer-pdf-rendered",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": ".pdf-provenance[data-source-revision='3'][data-preview-revision='3'][data-stale='false']"
+      },
+      "state": "visible",
+      "timeout_ms": 30000
+    },
+    {
+      "step_id": "allow-older-response-to-arrive-last",
+      "action": "wait_for_timeout",
+      "duration_ms": 2000
+    },
+    {
+      "step_id": "newer-pdf-still-selected",
+      "action": "wait_for",
+      "locator": {
+        "kind": "css",
+        "selector": ".pdf-provenance[data-source-revision='3'][data-preview-revision='3'][data-stale='false']"
+      },
+      "state": "visible",
+      "timeout_ms": 5000
+    }
+  ],
+  "capture": {
+    "at_end": ["screenshot", "dom", "accessibility"],
+    "events": ["page-errors"]
+  }
+}
